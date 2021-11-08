@@ -17,7 +17,10 @@ var cfgFile string
 var defaultFFconf string = "$USER/.config/.ff.yaml"
 var defaultFFpath string = "$USER/.ff"
 
-var defaultConfSettings string = fmt.Sprintf("notesPath: %v \nmaxColumns: 4 \ncolumnPadding: 2", defaultFFpath)
+var defaultConfSettings string = fmt.Sprintf(
+	"notesPath: %v"+
+		"\nmaxColumns: 4"+
+		"\ncolumnPadding: 2", defaultFFpath)
 
 var rootCmd = &cobra.Command{
 	Use:   "ff",
