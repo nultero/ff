@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"ff/cmd/add"
 	"fmt"
 
 	"github.com/nultero/tics"
@@ -8,21 +9,45 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:     "add [FILE_NAME, SUB_HEADER_NAME]",
+	Use:     "add [FILE_NAME]",
 	Aliases: []string{"a", "make"},
-	Short:   "Create and open a new file /  with the name listed.",
-	Run: func(cmd *cobra.Command, args []string) {
+	Short:   "add a note tag to a file",
 
-		if len(args) > 2 {
-			cmd := tics.MakeT("add").Blue().Str()
-			tics.ThrowTooManyArgs(cmd)
+	Args: cobra.MaximumNArgs(1),
 
-		} else {
-			fmt.Println("yes")
-		}
-	},
+	// TODO completion func, just grab the index file and go by file names
+	Run: addFunc,
+}
+
+func addFunc(cmd *cobra.Command, args []string) {
+	checkFlags()
+
+	if len(args) == 0 {
+		args = append(args, add.GetArg(&CategoryFlag, &NoteFlag))
+	}
+
+	arg := args[0]
+
+	if CategoryFlag {
+		fmt.Println("placeholder for category")
+
+	} else {
+
+		jump(arg)
+
+		dex.Changed = true
+
+		// TODO implement the autofmt after some kind of jump
+	}
+
 }
 
 func init() {
+
+	categoryStr := "creates a new note category " + tics.Make("*(will start with no tags)").Green().String()
+
 	rootCmd.AddCommand(addCmd)
+	addCmd.Flags().BoolVarP(&CategoryFlag, "category", "c", false, categoryStr)
+	addCmd.Flags().BoolVarP(&NoteFlag, "new", "n", false, "")
+	addCmd.Flags().StringVarP(&FileFlag, "file", "f", "", "specifies a notes file to search in")
 }

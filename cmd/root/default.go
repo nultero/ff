@@ -1,4 +1,4 @@
-package cmd
+package root
 
 import (
 	"fmt"
@@ -11,16 +11,15 @@ import (
 )
 
 // Strictly the variant for when no args are passed to ff.
-func columnizeAllNotes(ffDir string) {
-	fmt.Println("")
+func DefaultColumnize(ffDir string) {
 
 	files := getFFfiles(ffDir)
 	maxCols, err := strconv.Atoi(viper.GetString("max columns"))
 	if err != nil {
-		tics.ThrowSysDescriptor(tics.BlameFunc(columnizeAllNotes), err)
+		tics.ThrowSys(DefaultColumnize, err)
 	}
 
-	maxLens := getZeroedIntSlice(maxCols)
+	maxLens := make([]int, maxCols)
 	rows := [][]string{}
 
 	for len(files) != 0 {
@@ -41,6 +40,9 @@ func columnizeAllNotes(ffDir string) {
 	}
 
 	maxLens = addPadding(maxLens)
+	dashStr := getDashesStr(&maxLens)
+	fmt.Println(" \n" + dashStr) //buffer newln and dashes
+
 	for _, rw := range rows {
 		ln := ""
 		for i, s := range rw {
@@ -50,15 +52,10 @@ func columnizeAllNotes(ffDir string) {
 		fmt.Println(ln)
 	}
 
-	nDashes := 0
-	for _, i := range maxLens {
-		nDashes += i
-	}
-
 	s := []string{
-		tics.MakeT("-").Blue().Repeat(nDashes).Str(),
-		tics.MakeT("+ no args passed to ff").Blue().Str(),
-		tics.MakeT("+ opts listed above").Blue().Str(),
+		dashStr,
+		tics.Make("+ no args passed to ff").Blue().String(),
+		tics.Make("+ opts listed above").Blue().String(),
 	}
 
 	for _, v := range s {
@@ -70,7 +67,7 @@ func getFFfiles(dir string) []string {
 	files := []string{}
 	fInfo, err := ioutil.ReadDir(dir)
 	if err != nil {
-		tics.ThrowSysDescriptor(tics.BlameFunc(getFFfiles), err)
+		tics.ThrowSys(getFFfiles, err)
 	}
 
 	for _, f := range fInfo {
@@ -80,18 +77,10 @@ func getFFfiles(dir string) []string {
 	return files
 }
 
-func getZeroedIntSlice(maxLen int) []int {
-	s := []int{}
-	for i := 0; i < maxLen; i++ {
-		s = append(s, 0)
-	}
-	return s
-}
-
 func addPadding(mx []int) []int {
 	p, err := strconv.Atoi(viper.GetString("column padding"))
 	if err != nil {
-		tics.ThrowSysDescriptor(tics.BlameFunc(addPadding), err)
+		tics.ThrowSys(addPadding, err)
 	}
 
 	for i := range mx {
@@ -99,4 +88,15 @@ func addPadding(mx []int) []int {
 	}
 
 	return mx
+}
+
+// Returns a string of dashes as long as the longest
+// of the columnized chunks; I think it looks good as a TUI.
+func getDashesStr(maxLens *[]int) string {
+	numDashes := 0
+	for _, i := range *maxLens {
+		numDashes += i
+	}
+
+	return tics.Make("-").Repeat(numDashes).String()
 }

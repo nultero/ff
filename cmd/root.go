@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"errors"
+	"ff/cmd/root"
 	"fmt"
 
 	"github.com/nultero/tics"
@@ -9,56 +11,55 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-var flavorText = tics.Red(" -> f's in the chat")
-
-var confMap = map[string]string{
-	"confDir": "$USER/.config/",
-	"dataDir": "$USER/.ff",
-}
-
-var defaultSettings = []string{
-	"notes path: $USER/.ff",
-	"max columns: 4",
-	"column padding: 2",
-}
-
+// When called with no args, ff will list out notes index
+// in columnized fmt, along with footer about supplying arg.
 var rootCmd = &cobra.Command{
 	Use:   "ff",
 	Short: "a cli notes indexing & quick-write tool  \n" + flavorText,
 
-	// When called with no args, ff will list out notes index
-	// in columnized fmt, along with footer about supplying arg.
+	// TODOO use index instead of dir calls in root columnizer
 	Run: func(cmd *cobra.Command, args []string) {
 		s := viper.GetString("notes path")
-		fmt.Println("viper notes path:", s)
-		columnizeAllNotes(s)
+		root.DefaultColumnize(s)
 	},
+}
+
+// A primitive in root.go to separate out some mutually exclusive flags.
+// Doesn't necessarily need flagsets on just two or three flags.
+func checkFlags() {
+	if CategoryFlag && NoteFlag {
+		s := fmt.Sprintf(
+			"'%v' and '%v' are mutually exclusive flags",
+			tics.Make("-c").Blue().String(),
+			tics.Make("-n").Blue().String(),
+		)
+		err := errors.New(s)
+		tics.ThrowSys(checkFlags, err)
+	}
 }
 
 func Execute() {
 	cobra.CheckErr(rootCmd.Execute())
+
+	if dex.Changed { // only some cmds will have triggered this,
+		dex.Index() // prompts re-indexing and autofmt
+	}
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/ff.yaml)")
 }
 
 func initConfig() {
-
 	confMap = tics.CobraRootInitBoilerPlate(confMap, true)
-	confPath := confMap["confDir"]
-
-	viper.AddConfigPath(confPath)
-	viper.SetConfigType("yaml")
-	viper.SetConfigName("ff")
+	confPath := confMap[confFile]
+	viper.SetConfigFile(confPath)
 	viper.AutomaticEnv()
 
 	// If a config file is found, read it in, else make one with prompt.
 	err := viper.ReadInConfig()
 	if err != nil {
 		tics.RunConfPrompts("ff", confMap, defaultSettings)
-		return
+		tics.ThrowQuiet("")
 	}
 }
